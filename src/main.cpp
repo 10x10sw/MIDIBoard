@@ -3,11 +3,12 @@
 
 void setup()
 {
-	Serial.println("TeensyLC MIDI Control");
+	PresetControl::Setup();
 	Keyboard::Setup();
 }
 
 void loop()
 {
+	PresetControl::Scan();
 	Keyboard::Scan();
 }

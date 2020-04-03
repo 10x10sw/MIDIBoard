@@ -20,6 +20,13 @@ struct Preset
 
 using KeyboardPreset = std::vector<Preset>;
 
-KeyboardPreset InitialPreset();
+namespace PresetControl
+{
+
+void Setup();
+bool Scan();
+KeyboardPreset CurrentPreset();
+
+} // namespace PresetControl
 
 #endif // PRESET_H

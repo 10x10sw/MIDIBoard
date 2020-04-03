@@ -7,8 +7,8 @@ namespace Keyboard
 {
 
 void Setup();
+bool Scan();
 void ApplyPreset(const KeyboardPreset &keyboardPreset);
-void Scan();
 
 } // namespace Keyboard
 

@@ -11,7 +11,7 @@ namespace
 {
 
 static const char kKeyButtonPins[] = {8, 12, 6};
-static const char kKeyLedPins[] = {17, 20, 7};
+static const char kKeyLedPins[] = {17, 19, 7};
 
 struct KeyButton
 {
@@ -29,32 +29,34 @@ struct KeyButton
 		debouncer.interval(25);
 	}
 
-	void StartNote()
+	bool StartNote()
 	{
 		noteIsOn = true;
 		digitalWrite(ledPin, HIGH);
 		usbMIDI.sendNoteOn(preset.note, preset.velocity, preset.channel);
+		return true;
 	}
 
-	void StopNote()
+	bool StopNote()
 	{
 		noteIsOn = false;
 		digitalWrite(ledPin, LOW);
 		usbMIDI.sendNoteOff(preset.note, preset.velocity, preset.channel); // [TBD] note-off velocity?
+		return true;
 	}
 
-	void Scan()
+	bool Scan()
 	{
 		debouncer.update();
 		if (!preset.hold)
 		{
 			if (debouncer.rose())
 			{
-				StopNote();
+				return StopNote();
 			}
 			else if (debouncer.fell())
 			{
-				StartNote();
+				return StartNote();
 			}
 		}
 		else
@@ -63,14 +65,15 @@ struct KeyButton
 			{
 				if (noteIsOn)
 				{
-					StopNote();
+					return StopNote();
 				}
 				else
 				{
-					StartNote();
+					return StartNote();
 				}
 			}
 		}
+		return false;
 	}
 };
 
@@ -81,7 +84,17 @@ std::vector<KeyButton *> gKeyButtons;
 void Setup()
 {
 	Serial.println("Keyboard::Setup");
-	ApplyPreset(InitialPreset());
+	ApplyPreset(PresetControl::CurrentPreset());
+}
+
+bool Scan()
+{
+	bool result = false;
+	for (auto &c : gKeyButtons)
+	{
+		result &= c->Scan();
+	}
+	return result;
 }
 
 void ApplyPreset(const KeyboardPreset &keyboardPreset)
@@ -105,14 +118,6 @@ void ApplyPreset(const KeyboardPreset &keyboardPreset)
 	{
 		gKeyButtons.push_back(new KeyButton(kKeyButtonPins[i], kKeyLedPins[i], p));
 		i++;
-	}
-}
-
-void Scan()
-{
-	for (auto &c : gKeyButtons)
-	{
-		c->Scan();
 	}
 }
 
