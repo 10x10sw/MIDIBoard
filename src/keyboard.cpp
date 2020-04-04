@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Bounce2.h>
-#include <memory>
 
 #include "keyboard.h"
 #include "pins.h"
@@ -19,7 +18,7 @@ struct KeyButton
 {
 	uint8_t ledPin;
 	Bounce debouncer;
-	const Function function; // TBD reference?
+	const Function function;
 	bool keyIsDown = false;
 
 	KeyButton(const int b, const int l, const Function &f)
@@ -35,22 +34,7 @@ struct KeyButton
 	{
 		keyIsDown = true;
 		digitalWrite(ledPin, HIGH);
-
-		if (function.HasNote())
-		{
-			gUsbMIDI.sendNoteOn(function.note, function.velocity, function.channel);
-			gSerialMIDI.sendNoteOn(function.note, function.velocity, function.channel);
-		}
-		if (function.HasSysex())
-		{
-			Sysex syx = function.sysex(kKeyUp);
-			if (syx.length > 0)
-			{
-				gUsbMIDI.sendSysEx(syx.length, syx.data, true);
-				gSerialMIDI.sendSysEx(syx.length, syx.data, true);
-			}
-		}
-
+		function.send(Function::kKeyDown);
 		return true;
 	}
 
@@ -58,29 +42,14 @@ struct KeyButton
 	{
 		keyIsDown = false;
 		digitalWrite(ledPin, LOW);
-
-		if (function.HasNote())
-		{
-			gUsbMIDI.sendNoteOff(function.note, function.velocity, function.channel);	   // [TBD] note-off velocity?
-			gSerialMIDI.sendNoteOff(function.note, function.velocity, function.channel); // [TBD] note-off velocity?
-		}
-		if (function.HasSysex())
-		{
-			Sysex syx = function.sysex(kKeyDown);
-			if (syx.length > 0)
-			{
-				gUsbMIDI.sendSysEx(syx.length, syx.data, true);
-				gSerialMIDI.sendSysEx(syx.length, syx.data, true);
-			}
-		}
-
+		function.send(Function::kKeyUp);
 		return true;
 	}
 
 	bool Scan()
 	{
 		debouncer.update();
-		if (function.hold)
+		if (function.latch)
 		{
 			if (debouncer.fell())
 			{
@@ -131,7 +100,7 @@ void ApplyPatch(const Patch &patch)
 	gKeyButtons.clear();
 
 	uint8_t i = 0;
-	for (const auto &p : patch.keyButtonFunctions)
+	for (const auto &p : patch.keyboardFunctions)
 	{
 		if (i >= sizeof(kKeyButtonPins))
 		{

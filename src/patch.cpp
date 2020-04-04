@@ -1,11 +1,16 @@
 #include <Arduino.h>
 #include <Bounce2.h>
 
-#include "pins.h"
 #include "patch.h"
+#include "pins.h"
+#include "serialmidi.h"
 
 namespace MIDIBoard
 {
+
+const int32_t Function::kKeyDown = 1;
+const int32_t Function::kKeyUp = -1;
+
 namespace PatchControl
 {
 namespace
@@ -34,23 +39,32 @@ static void DisplayPatch(uint8_t patch)
 	digitalWrite(kLedPins[3], (displayPattern & 8) != 0);
 }
 
-static void InstallPatch()
+static bool SimpleSendNote(int32_t inKeyUpDown, uint8_t note, uint8_t velocity, uint8_t channel)
 {
+	if (inKeyUpDown == Function::kKeyDown)
+		SendNoteOn(note, velocity, channel);
+	else
+		SendNoteOff(note, velocity, channel);
+	return true;
+}
+
+static void InstallPreset()
+{
+	// preset 0 will play 8 notes from C0 to G0 with velocity 100 on channel 1
 	Patch patch;
 	Function p;
+	for (uint8_t n = 48; n < 56; ++n)
+	{
+		p.send = [n](int32_t inKeyUpDown) -> bool {
+			return SimpleSendNote(inKeyUpDown, n, 100, 1);
+		};
+		patch.keyboardFunctions.push_back(p);
+	}
+	RegisterPatch(patch);
 
-	// p.sysex = [](bool isKeyDown) {
-	// 	static Sysex syx;
-	// 	return syx;
-	// };
-
-	p.note = 64;
-	patch.keyButtonFunctions.push_back(p);
-	p.note = 68;
-	patch.keyButtonFunctions.push_back(p);
-	p.note = 71;
-	patch.keyButtonFunctions.push_back(p);
-
+	// preset 1 will play 8 notes from C0 to G0 with velocity 100 on channel 1 with latching (hold)
+	for (auto &f : patch.keyboardFunctions)
+		f.latch = true;
 	RegisterPatch(patch);
 
 	gCurrentPatch = 0;
@@ -86,7 +100,7 @@ void Setup()
 	for (uint8_t i = 0; i < sizeof(kLedPins); ++i)
 		pinMode(kLedPins[i], OUTPUT);
 
-	InstallPatch();
+	InstallPreset();
 }
 
 bool Scan()

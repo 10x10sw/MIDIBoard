@@ -1,16 +1,15 @@
 #ifndef SERIALMIDI_H
 #define SERIALMIDI_H
 
-#include <MIDI.h>
-
 namespace MIDIBoard
 {
 
-using SerialMIDI = midi::MidiInterface<HardwareSerial>;
-extern SerialMIDI gSerialMIDI;
+void SetupMIDI();
 
-// for consistency:
-#define gUsbMIDI usbMIDI
+// these functions send on both USB and Serial
+void SendNoteOn(uint8_t note, uint8_t velocity, uint8_t channel);
+void SendNoteOff(uint8_t note, uint8_t velocity, uint8_t channel);
+void SendSysEx(uint32_t length, const uint8_t *data);
 
 } // namespace MIDIBoard
 

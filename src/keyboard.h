@@ -2,7 +2,6 @@
 #define KEYBOARD_H
 
 #include "patch.h"
-#include "serialmidi.h"
 
 namespace MIDIBoard
 {

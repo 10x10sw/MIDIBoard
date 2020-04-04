@@ -1,16 +1,13 @@
 #include <Arduino.h>
-#include "keyboard.h"
 
-namespace MIDIBoard
-{
-// i.e. MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, gSerialMIDI);
-SerialMIDI gSerialMIDI(Serial1);
-}
+#include "keyboard.h"
+#include "serialmidi.h"
+
 using namespace MIDIBoard;
 
 void setup()
 {
-	gSerialMIDI.begin(MIDI_CHANNEL_OMNI);
+	SetupMIDI();
 	PatchControl::Setup();
 	Keyboard::Setup();
 }
