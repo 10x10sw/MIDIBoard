@@ -4,6 +4,8 @@
 #include "pins.h"
 #include "patch.h"
 
+namespace MIDIBoard
+{
 namespace PatchControl
 {
 namespace
@@ -35,7 +37,7 @@ static void DisplayPatch(uint8_t patch)
 static void InstallPatch()
 {
 	Patch patch;
-	MIDIFunction p;
+	Function p;
 
 	// p.sysex = [](bool isKeyDown) {
 	// 	static Sysex syx;
@@ -43,11 +45,11 @@ static void InstallPatch()
 	// };
 
 	p.note = 64;
-	patch.push_back(p);
+	patch.keyButtonFunctions.push_back(p);
 	p.note = 68;
-	patch.push_back(p);
+	patch.keyButtonFunctions.push_back(p);
 	p.note = 71;
-	patch.push_back(p);
+	patch.keyButtonFunctions.push_back(p);
 
 	RegisterPatch(patch);
 
@@ -117,3 +119,4 @@ Patch CurrentPatch()
 }
 
 } // namespace PatchControl
+} // namespace MIDIBoard

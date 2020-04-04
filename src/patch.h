@@ -4,7 +4,12 @@
 #include <vector>
 #include <functional>
 
-#define NO_MIDI_NOTE -1
+namespace MIDIBoard
+{
+
+#define kNoMIDINote -1
+#define kKeyDown 1
+#define kKeyUp -1
 
 struct Sysex
 {
@@ -12,31 +17,35 @@ struct Sysex
 	const uint8_t *data = NULL;
 };
 
-// bool is true on key down, false on key up
-using SysexGenerator = std::function<Sysex(bool)>;
+// This int32_t parameter is used as input for continuous controllers and to indicate key down / key up.
+// key down = kKeyDown (1), key up = kKeyUp (-1)
+using SysexGenerator = std::function<Sysex(int32_t)>;
 
-// this is the Preset for a single button or key
-struct MIDIFunction
+// this is the Preset for a single button, key, or continuous controller
+struct Function
 {
-	bool hold = false; // i.e. not momentary
 
 	uint8_t channel = 1;
 
-	// MIDI note number 0-127; NO_MIDI_NOTE (-1) means don't send any note on/off
-	int8_t note = NO_MIDI_NOTE;
+	// MIDI note number 0-127; kNoMIDINote (-1) means don't send any note on/off
+	bool hold = false; // for keys/switches/buttons: i.e. momentary, like a keyboard; non-latching
+	int8_t note = kNoMIDINote;
 	int8_t velocity = 100;
 
 	// sysex
 	SysexGenerator sysex = NULL;
 
-	// other
 
-	bool HasNote() const { return note != NO_MIDI_NOTE; }
+	// helpers
+	bool HasNote() const { return note != kNoMIDINote; }
 	bool HasSysex() const { return sysex != NULL; }
-
 };
 
-using Patch = std::vector<MIDIFunction>;
+struct Patch
+{
+	std::vector<Function> keyButtonFunctions;
+	// TODO CC/foot controller functions
+};
 
 namespace PatchControl
 {
@@ -47,5 +56,6 @@ void RegisterPatch(const Patch& patch);
 Patch CurrentPatch();
 
 } // namespace PresetControl
+} // namespace MIDIBoard
 
 #endif // PATCH_H

@@ -1,16 +1,16 @@
 #include <Arduino.h>
 #include <Bounce2.h>
-#include <MIDI.h>
+#include <memory>
 
 #include "keyboard.h"
 #include "pins.h"
 
+namespace MIDIBoard
+{
 namespace Keyboard
 {
 namespace
 {
-// Serial MIDI
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
 static const uint8_t kKeyButtonPins[] = {KEYBTN1, KEYBTN2, KEYBTN3, KEYBTN4, KEYBTN5, KEYBTN6, KEYBTN7, KEYBTN8};
 static const uint8_t kKeyLedPins[] = {KEYLED1, KEYLED2, KEYLED3, KEYLED4, KEYLED5, KEYLED6, KEYLED7, KEYLED8};
@@ -19,11 +19,11 @@ struct KeyButton
 {
 	uint8_t ledPin;
 	Bounce debouncer;
-	MIDIFunction midi;
+	const Function function; // TBD reference?
 	bool keyIsDown = false;
 
-	KeyButton(const int b, const int l, const MIDIFunction &p)
-		: ledPin(l), midi(p)
+	KeyButton(const int b, const int l, const Function &f)
+		: ledPin(l), function(f)
 	{
 		pinMode(l, OUTPUT);
 		digitalWrite(l, LOW);
@@ -36,18 +36,18 @@ struct KeyButton
 		keyIsDown = true;
 		digitalWrite(ledPin, HIGH);
 
-		if (midi.HasNote())
+		if (function.HasNote())
 		{
-			usbMIDI.sendNoteOn(midi.note, midi.velocity, midi.channel);
-			MIDI.sendNoteOn(midi.note, midi.velocity, midi.channel);
+			gUsbMIDI.sendNoteOn(function.note, function.velocity, function.channel);
+			gSerialMIDI.sendNoteOn(function.note, function.velocity, function.channel);
 		}
-		if (midi.HasSysex())
+		if (function.HasSysex())
 		{
-			Sysex syx = midi.sysex(true);
+			Sysex syx = function.sysex(kKeyUp);
 			if (syx.length > 0)
 			{
-				usbMIDI.sendSysEx(syx.length, syx.data, true);
-				MIDI.sendSysEx(syx.length, syx.data, true);
+				gUsbMIDI.sendSysEx(syx.length, syx.data, true);
+				gSerialMIDI.sendSysEx(syx.length, syx.data, true);
 			}
 		}
 
@@ -59,18 +59,18 @@ struct KeyButton
 		keyIsDown = false;
 		digitalWrite(ledPin, LOW);
 
-		if (midi.HasNote())
+		if (function.HasNote())
 		{
-			usbMIDI.sendNoteOff(midi.note, midi.velocity, midi.channel); // [TBD] note-off velocity?
-			MIDI.sendNoteOff(midi.note, midi.velocity, midi.channel);	 // [TBD] note-off velocity?
+			gUsbMIDI.sendNoteOff(function.note, function.velocity, function.channel);	   // [TBD] note-off velocity?
+			gSerialMIDI.sendNoteOff(function.note, function.velocity, function.channel); // [TBD] note-off velocity?
 		}
-		if (midi.HasSysex())
+		if (function.HasSysex())
 		{
-			Sysex syx = midi.sysex(false);
+			Sysex syx = function.sysex(kKeyDown);
 			if (syx.length > 0)
 			{
-				usbMIDI.sendSysEx(syx.length, syx.data, true);
-				MIDI.sendSysEx(syx.length, syx.data, true);
+				gUsbMIDI.sendSysEx(syx.length, syx.data, true);
+				gSerialMIDI.sendSysEx(syx.length, syx.data, true);
 			}
 		}
 
@@ -80,7 +80,7 @@ struct KeyButton
 	bool Scan()
 	{
 		debouncer.update();
-		if (midi.hold)
+		if (function.hold)
 		{
 			if (debouncer.fell())
 			{
@@ -101,17 +101,14 @@ struct KeyButton
 	}
 };
 
-std::vector<KeyButton *> gKeyButtons;
+using KeyButtonPtr = std::shared_ptr<KeyButton>;
+std::vector<KeyButtonPtr> gKeyButtons;
 
 } // anonymous namespace
 
 void Setup()
 {
 	ApplyPatch(PatchControl::CurrentPatch());
-
-	// Serial MIDI
-	MIDI.begin(MIDI_CHANNEL_OMNI);
-	Serial.begin(57600);
 }
 
 bool Scan()
@@ -134,16 +131,17 @@ void ApplyPatch(const Patch &patch)
 	gKeyButtons.clear();
 
 	uint8_t i = 0;
-	for (const auto &p : patch)
+	for (const auto &p : patch.keyButtonFunctions)
 	{
 		if (i >= sizeof(kKeyButtonPins))
 		{
 			Serial.printf("error: patch too big for hardware: %d\n", i);
 			return;
 		}
-		gKeyButtons.push_back(new KeyButton(kKeyButtonPins[i], kKeyLedPins[i], p));
+		gKeyButtons.push_back(KeyButtonPtr(new KeyButton(kKeyButtonPins[i], kKeyLedPins[i], p)));
 		i++;
 	}
 }
 
 } // namespace Keyboard
+} // namespace MIDIBoard

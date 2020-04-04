@@ -2,7 +2,10 @@
 #define KEYBOARD_H
 
 #include "patch.h"
+#include "serialmidi.h"
 
+namespace MIDIBoard
+{
 namespace Keyboard
 {
 
@@ -11,5 +14,6 @@ bool Scan();
 void ApplyPatch(const Patch &patch);
 
 } // namespace Keyboard
+} // namespace MIDIBoard
 
 #endif // KEYBOARD_H
