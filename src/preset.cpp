@@ -1,17 +1,17 @@
 #include <Arduino.h>
 #include <Bounce2.h>
 
+#include "pins.h"
 #include "preset.h"
 
 namespace PresetControl
 {
-
 namespace
 {
+static const char kIncButtonPin = PREINCBTN;
+static const char kDecButtonPin = PREDECBTN;
+static const char kLedPins[] = {PRELED1, PRELED2, PRELED3, PRELED4};
 
-static const char kIncButtonPin = 4;
-static const char kDecButtonPin = 3;
-static const char kLedPins[] = {20, 21, 22, 0};
 // 0001 0010 0100 1000  0011 0110 1100 1001  1011 0111 1110 1101
 static const char kDisplayPatterns[] = {1, 2, 4, 8, 3, 6, 0xc, 9, 0xb, 7, 0xe, 0xd};
 

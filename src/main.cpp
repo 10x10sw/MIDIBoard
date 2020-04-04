@@ -9,6 +9,7 @@ void setup()
 
 void loop()
 {
-	PresetControl::Scan();
+	if (PresetControl::Scan())
+		Keyboard::ApplyPreset(PresetControl::CurrentPreset());
 	Keyboard::Scan();
 }
