@@ -3,13 +3,13 @@
 
 void setup()
 {
-	PresetControl::Setup();
+	PatchControl::Setup();
 	Keyboard::Setup();
 }
 
 void loop()
 {
-	if (PresetControl::Scan())
-		Keyboard::ApplyPreset(PresetControl::CurrentPreset());
+	if (PatchControl::Scan())
+		Keyboard::ApplyPatch(PatchControl::CurrentPatch());
 	Keyboard::Scan();
 }
